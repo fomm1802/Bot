@@ -11,7 +11,14 @@ app = Flask('')
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-start_time = datetime.datetime.now()
+# Load start time from file or set to current time
+try:
+    with open("start_time.txt", "r") as file:
+        start_time = datetime.datetime.fromisoformat(file.read().strip())
+except (FileNotFoundError, ValueError):
+    start_time = datetime.datetime.now()
+    with open("start_time.txt", "w") as file:
+        file.write(start_time.isoformat())
 
 def load_config():
     """โหลดการตั้งค่าจากไฟล์ config.json"""
@@ -128,6 +135,14 @@ def get_notify_channel_id():
 @app.route('/bot_status')
 def get_bot_status():
     return "Running" if os.getenv("BOT_STATUS") == "running" else "Not running"
+
+@app.route('/reset_uptime')
+def reset_uptime():
+    global start_time
+    start_time = datetime.datetime.now()
+    with open("start_time.txt", "w") as file:
+        file.write(start_time.isoformat())
+    return "Uptime reset successfully"
 
 def run():
     app.run(host='0.0.0.0', port=8080)
