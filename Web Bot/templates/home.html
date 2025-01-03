@@ -282,41 +282,37 @@
     <footer>&copy; 2025 Gawr Gura Dashboard | Designed with 🦈❤️</footer>
 
     <script>
-           function updateUptime() {
-               const startTime = new Date({
-                   {
-                       start_time | safe
-                   }
-               }* 1000);
-               const now = new Date();
-               const uptime = new Date(now - startTime);
-               const days = Math.floor(uptime / (1000 * 60 * 60 * 24));
-               const hours = uptime.getUTCHours();
-               const minutes = uptime.getUTCMinutes();
-               const seconds = uptime.getUTCSeconds();
-               document.getElementById('uptime').innerText =
-                   `${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds`;
-           }
+        function updateUptime() {
+            const startTime = new Date({{ start_time|safe }} * 1000);
+            const now = new Date();
+            const uptime = new Date(now - startTime);
+            const days = Math.floor(uptime / (1000 * 60 * 60 * 24));
+            const hours = uptime.getUTCHours();
+            const minutes = uptime.getUTCMinutes();
+            const seconds = uptime.getUTCSeconds();
+            document.getElementById('uptime').innerText = 
+                `${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds`;
+        }
 
-           function fetchAndUpdate(id, endpoint) {
-               fetch(endpoint)
-                   .then(response => response.text())
-                   .then(data => {
-                       document.getElementById(id).innerText = data;
-                   })
-                   .catch(error => {
-                       document.getElementById(id).innerText = 'Error loading';
-      console.error(error);
-                   });
-           }
+        function fetchAndUpdate(id, endpoint) {
+            fetch(endpoint)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById(id).innerText = data;
+                })
+                .catch(error => {
+                    document.getElementById(id).innerText = 'Error loading';
+                    console.error(error);
+                });
+        }
 
-           setInterval(updateUptime, 1000);
-           setInterval(() => fetchAndUpdate('notify_channel_id', '/notify_channel_id'), 5000);
-           setInterval(() => fetchAndUpdate('bot_status', '/bot_status'), 5000);
+        setInterval(updateUptime, 1000);
+        setInterval(() => fetchAndUpdate('notify_channel_id', '/notify_channel_id'), 5000);
+        setInterval(() => fetchAndUpdate('bot_status', '/bot_status'), 5000);
 
-           updateUptime();
-           fetchAndUpdate('notify_channel_id', '/notify_channel_id');
-           fetchAndUpdate('bot_status', '/bot_status');
+        updateUptime();
+        fetchAndUpdate('notify_channel_id', '/notify_channel_id');
+        fetchAndUpdate('bot_status', '/bot_status');
     </script>
   </body>
 </html>
