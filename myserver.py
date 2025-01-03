@@ -63,6 +63,11 @@ def reset_uptime():
         file.write(start_time.isoformat())
     return "Uptime reset successfully"
 
+@app.route('/server_count')
+def server_count():
+    count = count_servers_in_config_folder()
+    return str(count)
+
 def run():
     app.run(host='0.0.0.0', port=8080)
     
