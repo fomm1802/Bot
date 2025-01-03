@@ -263,9 +263,9 @@
 
       function updateServerCount() {
         fetch('/server_count')
-          .then(response => response.json())
+          .then(response => response.text())
           .then(data => {
-            document.getElementById('server_count').innerText = data.count;
+            document.getElementById('server_count').innerText = data;
           })
           .catch(error => {
             document.getElementById('server_count').innerText = 'Error loading';
