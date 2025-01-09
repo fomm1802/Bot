@@ -4,15 +4,25 @@ import asyncio
 import json
 import os
 import logging
-from myserver import keep_alive
+from firebase_admin import credentials, initialize_app, firestore
 from dotenv import load_dotenv
 import time
 
-# ฟังก์ชันในการโหลดการตั้งค่าจากไฟล์ config.json
+# Firebase Initialization
+cred = credentials.Certificate("serviceAccountKey.json")
+firebase_app = initialize_app(cred)
+db = firestore.client()
+
+# ฟังก์ชันในการโหลด config.json
 def load_config():
     try:
         with open("config.json", "r") as file:
-            return json.load(file)
+            config = json.load(file)
+            required_keys = ["prefix", "BOT_TOKEN"]
+            for key in required_keys:
+                if key not in config:
+                    raise Exception(f"Missing required key: {key}")
+            return config
     except FileNotFoundError:
         raise Exception("ไม่พบไฟล์ config.json")
     except json.JSONDecodeError:
@@ -20,7 +30,7 @@ def load_config():
 
 config = load_config()
 
-# การตั้งค่าสีสำหรับข้อความ Log
+# การตั้งค่า Logging
 LOG_COLORS = {
     'DEBUG': '\033[94m',
     'INFO': '\033[92m',
@@ -40,7 +50,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
 for handler in logging.root.handlers:
     handler.setFormatter(ColoredFormatter('%(levelname)s:%(message)s'))
 
-# การตั้งค่า Intents สำหรับ Discord
+# การตั้งค่า Intents
 intents = discord.Intents.all()
 intents.members = True
 intents.voice_states = True
@@ -52,7 +62,7 @@ bot.config = config
 # Track the bot's start time
 start_time = time.time()
 
-# ฟังก์ชันในการคำนวณเวลาที่บอทออนไลน์
+# ฟังก์ชันคำนวณ Uptime
 def get_uptime():
     uptime_seconds = int(time.time() - start_time)
     hours = uptime_seconds // 3600
@@ -60,52 +70,48 @@ def get_uptime():
     seconds = uptime_seconds % 60
     return f"{hours}h {minutes}m {seconds}s"
 
-# อัปเดตสถานะของบอทเป็นเวลาออนไลน์
-@tasks.loop(seconds=5)  # อัปเดตทุกๆ 5 วินาที
-async def update_presence():
-    uptime = get_uptime()
-    await bot.change_presence(activity=discord.Game(name=f"Online for {uptime}"))
-
-# ฟังก์ชันการโหลดและบันทึกการตั้งค่าของเซิร์ฟเวอร์
-def get_server_config(guild_id):
-    server_config_path = f"configs/{guild_id}.json"
-    if os.path.exists(server_config_path):
-        try:
-            with open(server_config_path, "r") as file:
-                return json.load(file)
-        except json.JSONDecodeError:
-            logging.error(f"❌ ไม่สามารถอ่านไฟล์การตั้งค่าของเซิร์ฟเวอร์ {guild_id}. ใช้ค่าดีฟอลต์แทน")
-            return {"notify_channel_id": None}
-    else:
-        logging.info(f"ℹ️ ไม่มีไฟล์การตั้งค่าสำหรับเซิร์ฟเวอร์ {guild_id}. ใช้ค่าดีฟอลต์แทน")
-        return {"notify_channel_id": None}
-
-def save_server_config(guild_id, server_config):
-    server_config_path = f"configs/{guild_id}.json"
-    os.makedirs(os.path.dirname(server_config_path), exist_ok=True)
-    with open(server_config_path, "w") as file:
-        json.dump(server_config, file, indent=4)
-
-# ฟังก์ชันในการตั้งค่าช่องแจ้งเตือน
+# ฟังก์ชันในการตั้งค่าช่องแจ้งเตือนและบันทึกลง Firebase
 @bot.command(name='set_notify_channel')
 @commands.has_permissions(administrator=True)
 async def set_notify_channel(ctx):
-    guild_id = ctx.guild.id
-    server_config = get_server_config(guild_id)
-    
-    # ดึง ID ของห้องที่ส่งคำสั่ง
-    channel_id = ctx.channel.id
-    
-    # บันทึกการตั้งค่า
-    server_config['notify_channel_id'] = channel_id
-    save_server_config(guild_id, server_config)
-    
-    await ctx.send(f"🔔 ช่องแจ้งเตือนถูกตั้งค่าเป็น: <#{channel_id}> สำหรับเซิร์ฟเวอร์นี้เรียบร้อยแล้ว!")
+    guild_id = str(ctx.guild.id)
+    channel_id = str(ctx.channel.id)
 
-# รายการ Extension ที่จะโหลด
-initial_extensions = [
-    "events.voice_events",
-]
+    # บันทึกข้อมูลลง Firebase
+    db.collection("server_configs").document(guild_id).set({
+        "notify_channel_id": channel_id
+    })
+
+    await ctx.send(f"🔔 ตั้งค่าช่องแจ้งเตือนเป็น: <#{channel_id}> สำเร็จ!")
+
+# ฟังก์ชันดึงข้อมูลการตั้งค่าจาก Firebase
+def get_server_config(guild_id):
+    try:
+        doc = db.collection("server_configs").document(str(guild_id)).get()
+        if doc.exists:
+            return doc.to_dict()
+        else:
+            return {"notify_channel_id": None}
+    except Exception as e:
+        logging.error(f"ไม่สามารถโหลดการตั้งค่าสำหรับเซิร์ฟเวอร์ {guild_id}: {e}")
+        return {"notify_channel_id": None}
+
+# อัปเดตสถานะบอท
+@tasks.loop(seconds=10)
+async def update_presence():
+    uptime = get_uptime()
+    guild_count = len(bot.guilds)
+    await bot.change_presence(activity=discord.Game(name=f"Online: {uptime} | Servers: {guild_count}"))
+
+# คำสั่งแสดงสถานะบอท
+@bot.command(name="status")
+async def status(ctx):
+    uptime = get_uptime()
+    guild_count = len(bot.guilds)
+    await ctx.send(f"✅ Bot is online!\n- Uptime: {uptime}\n- Connected Servers: {guild_count}")
+
+# โหลด Extensions
+initial_extensions = []
 
 os.system('clear')
 
@@ -117,10 +123,15 @@ G   G     U   U   R  R   A     A     B   B   O   O     T
  GGGG      UUU    R   R  A     A     BBBB     OOO      T
 """
 
-# Print the logo
 print(logo)
 
-# ฟังก์ชันหลักในการเริ่มบอท
+# Event เมื่อบอทพร้อมใช้งาน
+@bot.event
+async def on_ready():
+    logging.info(f"Bot is online and ready! Logged in as {bot.user}")
+    update_presence.start()
+
+# ฟังก์ชันเริ่มต้นบอท
 async def main():
     logging.info("📦 กำลังโหลด Extensions...")
     for extension in initial_extensions:
@@ -132,20 +143,12 @@ async def main():
 
     logging.info("🚀 เริ่มบอท...")
     try:
-        os.environ["BOT_STATUS"] = "running"
         await bot.start(os.getenv("BOT_TOKEN"))
     except discord.errors.LoginFailure:
         logging.critical("ไม่สามารถเริ่มบอทได้: Improper token has been passed.")
     except Exception as e:
         logging.critical(f"ไม่สามารถเริ่มบอทได้: {e}")
-    finally:
-        os.environ["BOT_STATUS"] = "not running"
-
-@bot.event
-async def on_ready():
-    logging.info(f"Bot is online and ready! Logged in as {bot.user}")
-    update_presence.start()  # เริ่มต้นการอัปเดตสถานะ
 
 if __name__ == "__main__":
-    keep_alive()  # ถ้าคุณมี server ที่คอยเปิดบอทในกรณีที่ต้องการทำงาน 24/7
+    load_dotenv()
     asyncio.run(main())
