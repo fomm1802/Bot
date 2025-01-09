@@ -4,29 +4,62 @@ import asyncio
 import json
 import os
 import logging
-from firebase_admin import credentials, initialize_app, firestore
 from dotenv import load_dotenv
 import time
+import requests
 
-# Firebase Initialization
-cred = credentials.Certificate("serviceAccountKey.json")
-firebase_app = initialize_app(cred)
-db = firestore.client()
+# GitHub configuration
+GITHUB_API_URL = "https://api.github.com"
+REPO_OWNER = "YOUR_GITHUB_USERNAME"
+REPO_NAME = "YOUR_REPO_NAME"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Ensure you have set your GitHub token in .env
 
-# ฟังก์ชันในการโหลด config.json
+# Function to get file content from GitHub
+def get_file_from_github(file_path):
+    url = f"{GITHUB_API_URL}/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        content = response.json()
+        return json.loads(requests.get(content['download_url']).text)
+    else:
+        raise Exception(f"Failed to fetch {file_path} from GitHub: {response.status_code}")
+
+# Function to update file content on GitHub
+def update_file_on_github(file_path, file_content, commit_message="Update config"):
+    url = f"{GITHUB_API_URL}/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}"
+    }
+    file_data = get_file_from_github(file_path)  # Get current file data for SHA
+    sha = file_data['sha']
+    data = {
+        "message": commit_message,
+        "content": json.dumps(file_content),
+        "sha": sha
+    }
+    response = requests.put(url, headers=headers, json=data)
+    if response.status_code == 200:
+        return True
+    else:
+        raise Exception(f"Failed to update {file_path} on GitHub: {response.status_code}")
+
+# Firebase Initialization (Remove Firebase logic if not needed)
+# Remove Firebase related initialization and functions
+
+# ฟังก์ชันในการโหลด config.json จาก GitHub
 def load_config():
     try:
-        with open("config.json", "r") as file:
-            config = json.load(file)
-            required_keys = ["prefix", "BOT_TOKEN"]
-            for key in required_keys:
-                if key not in config:
-                    raise Exception(f"Missing required key: {key}")
-            return config
-    except FileNotFoundError:
-        raise Exception("ไม่พบไฟล์ config.json")
-    except json.JSONDecodeError:
-        raise Exception("ไฟล์ config.json มีข้อผิดพลาดในการอ่านข้อมูล")
+        config = get_file_from_github("config.json")
+        required_keys = ["prefix", "BOT_TOKEN"]
+        for key in required_keys:
+            if key not in config:
+                raise Exception(f"Missing required key: {key}")
+        return config
+    except Exception as e:
+        raise Exception(f"ไม่สามารถโหลด config.json: {e}")
 
 config = load_config()
 
@@ -70,28 +103,25 @@ def get_uptime():
     seconds = uptime_seconds % 60
     return f"{hours}h {minutes}m {seconds}s"
 
-# ฟังก์ชันในการตั้งค่าช่องแจ้งเตือนและบันทึกลง Firebase
+# ฟังก์ชันในการตั้งค่าช่องแจ้งเตือนและบันทึกลง GitHub
 @bot.command(name='set_notify_channel')
 @commands.has_permissions(administrator=True)
 async def set_notify_channel(ctx):
     guild_id = str(ctx.guild.id)
     channel_id = str(ctx.channel.id)
 
-    # บันทึกข้อมูลลง Firebase
-    db.collection("server_configs").document(guild_id).set({
-        "notify_channel_id": channel_id
-    })
+    # บันทึกข้อมูลลง GitHub
+    server_config = get_file_from_github("configs.json")
+    server_config[guild_id] = {"notify_channel_id": channel_id}
+    update_file_on_github("configs.json", server_config)
 
     await ctx.send(f"🔔 ตั้งค่าช่องแจ้งเตือนเป็น: <#{channel_id}> สำเร็จ!")
 
-# ฟังก์ชันดึงข้อมูลการตั้งค่าจาก Firebase
+# ฟังก์ชันดึงข้อมูลการตั้งค่าจาก GitHub
 def get_server_config(guild_id):
     try:
-        doc = db.collection("server_configs").document(str(guild_id)).get()
-        if doc.exists:
-            return doc.to_dict()
-        else:
-            return {"notify_channel_id": None}
+        server_config = get_file_from_github("configs.json")
+        return server_config.get(guild_id, {"notify_channel_id": None})
     except Exception as e:
         logging.error(f"ไม่สามารถโหลดการตั้งค่าสำหรับเซิร์ฟเวอร์ {guild_id}: {e}")
         return {"notify_channel_id": None}
