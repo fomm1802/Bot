@@ -4,9 +4,9 @@ import asyncio
 import json
 import os
 import logging
-from myserver import keep_alive
 from dotenv import load_dotenv
 import time
+from myserver import keep_alive
 import base64
 import requests
 
@@ -82,6 +82,22 @@ def get_server_config(guild_id):
         logging.info(f"ℹ️ ไม่มีไฟล์การตั้งค่าสำหรับเซิร์ฟเวอร์ {guild_id}. ใช้ค่าดีฟอลต์แทน")
         return {"notify_channel_id": None}
 
+# ฟังก์ชันในการตรวจสอบว่าไฟล์การตั้งค่าเซิร์ฟเวอร์มีอยู่ใน GitHub หรือไม่
+def check_if_file_exists_on_github(guild_id):
+    repo_owner = "fomm1802"  # ชื่อเจ้าของ repository
+    repo_name = "Bot"  # ชื่อ repository
+    file_path = f"configs/{guild_id}.json"  # ที่อยู่ไฟล์ใน repository
+    github_token = os.getenv("GITHUB_TOKEN")  # ดึง GITHUB_TOKEN จาก .env
+    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{file_path}"
+    
+    # ส่งคำขอ GET ไปยัง GitHub API เพื่อตรวจสอบว่าไฟล์มีอยู่หรือไม่
+    response = requests.get(url, headers={"Authorization": f"Bearer {github_token}"})
+    
+    if response.status_code == 200:
+        return True  # หากได้รับการตอบกลับด้วย status 200 แสดงว่าไฟล์มีอยู่
+    else:
+        return False  # หากไม่พบไฟล์
+
 # ฟังก์ชันการบันทึกการตั้งค่าของเซิร์ฟเวอร์ไปยัง GitHub
 def save_server_config_to_github(guild_id, server_config):
     repo_owner = "fomm1802"  # ชื่อเจ้าของ repository
@@ -127,17 +143,23 @@ def save_server_config(guild_id, server_config):
     with open(server_config_path, "w") as file:
         json.dump(server_config, file, indent=4)
 
-# ฟังก์ชันในการตั้งค่าช่องแจ้งเตือน
+# ฟังก์ชันการตั้งค่าช่องแจ้งเตือน
 @bot.command(name='set_notify_channel')
 @commands.has_permissions(administrator=True)
 async def set_notify_channel(ctx):
     guild_id = ctx.guild.id
     server_config = get_server_config(guild_id)
     
+    # เช็คว่าไฟล์การตั้งค่ามีอยู่ใน GitHub หรือไม่
+    if check_if_file_exists_on_github(guild_id):
+        logging.info(f"✅ พบไฟล์การตั้งค่า {guild_id}.json อยู่ใน GitHub")
+    else:
+        logging.info(f"ℹ️ ไม่พบไฟล์การตั้งค่า {guild_id}.json ใน GitHub จะสร้างไฟล์ใหม่")
+    
     # ดึง ID ของห้องที่ส่งคำสั่ง
     channel_id = ctx.channel.id
     
-    # บันทึกการตั้งค่า
+    # อัปเดตการตั้งค่า
     server_config['notify_channel_id'] = channel_id
     save_server_config(guild_id, server_config)  # บันทึกการตั้งค่าไปยัง GitHub และเครื่อง
     
@@ -189,5 +211,5 @@ async def on_ready():
 
 if __name__ == "__main__":
     load_dotenv()  # Load environment variables from .env file
-    keep_alive()  # ถ้าคุณมี server ที่คอยเปิดบอทในกรณีที่ต้องการทำงาน 24/7
+    keep_alive()  # เริ่มให้เซิร์ฟเวอร์อยู่บนไลน์
     asyncio.run(main())
