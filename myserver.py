@@ -4,6 +4,7 @@ import datetime
 import os
 import json
 import logging
+import requests
 
 app = Flask(__name__, template_folder='Web Bot/templates', static_folder='Web Bot/static')
 
@@ -46,6 +47,35 @@ def count_servers_in_config_folder():
     except FileNotFoundError:
         return 0
 
+GITHUB_API_URL = "https://api.github.com"
+GITHUB_REPO = "username/repo"
+GITHUB_FILE_PATH = "path/to/file"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
+def update_github_file():
+    url = f"{GITHUB_API_URL}/repos/{GITHUB_REPO}/contents/{GITHUB_FILE_PATH}"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        file_info = response.json()
+        sha = file_info['sha']
+        content = "New file content"
+        data = {
+            "message": "Update file via bot",
+            "content": content.encode('utf-8').decode('utf-8'),
+            "sha": sha
+        }
+        response = requests.put(url, headers=headers, json=data)
+        if response.status_code == 200:
+            return "File updated successfully"
+        else:
+            return f"Error updating file: {response.status_code}"
+    else:
+        return f"Error fetching file: {response.status_code}"
+
 @app.route('/')
 def home():
     server_count = count_servers_in_config_folder()
@@ -63,10 +93,9 @@ def reset_uptime():
         file.write(start_time.isoformat())
     return "Uptime reset successfully"
 
-@app.route('/server_count')
-def server_count():
-    count = count_servers_in_config_folder()
-    return str(count)
+@app.route('/update_github_file', methods=['POST'])
+def update_github_file_route():
+    return update_github_file()
 
 def run():
     app.run(host='0.0.0.0', port=8080)
