@@ -52,8 +52,8 @@ GITHUB_REPO = "fomm1802/Bot"
 GITHUB_FILE_PATH = "configs/"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
-def update_github_file():
-    url = f"{GITHUB_API_URL}/repos/{GITHUB_REPO}/contents/{GITHUB_FILE_PATH}"
+def update_github_file(file_path, new_content):
+    url = f"{GITHUB_API_URL}/repos/{GITHUB_REPO}/contents/{file_path}"
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
@@ -62,10 +62,9 @@ def update_github_file():
     if response.status_code == 200:
         file_info = response.json()
         sha = file_info['sha']
-        content = "New file content"
         data = {
             "message": "Update file via bot",
-            "content": content.encode('utf-8').decode('utf-8'),
+            "content": new_content.encode('utf-8').decode('utf-8'),
             "sha": sha
         }
         response = requests.put(url, headers=headers, json=data)
@@ -93,9 +92,18 @@ def reset_uptime():
         file.write(start_time.isoformat())
     return "Uptime reset successfully"
 
+@app.route('/server_count')
+def server_count():
+    count = count_servers_in_config_folder()
+    return {"count": count}
+
 @app.route('/update_github_file', methods=['POST'])
 def update_github_file_route():
-    return update_github_file()
+    file_path = request.json.get('file_path')
+    new_content = request.json.get('new_content')
+    if not file_path or not new_content:
+        return "Missing file_path or new_content", 400
+    return update_github_file(file_path, new_content)
 
 def run():
     app.run(host='0.0.0.0', port=8080)
