@@ -6,8 +6,9 @@ import os
 import logging
 from myserver import keep_alive
 from dotenv import load_dotenv
-import subprocess
 import time
+import base64
+import requests
 
 # ฟังก์ชันในการโหลดการตั้งค่าจากไฟล์ config.json
 def load_config():
@@ -67,14 +68,6 @@ async def update_presence():
     uptime = get_uptime()
     await bot.change_presence(activity=discord.Game(name=f"Online for {uptime}"))
 
-# ฟังก์ชันการจัดการ Git
-def run_git_command(command):
-    try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
-        logging.info(result.stdout.strip())
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Git command failed: {e.stderr.strip()}")
-
 # ฟังก์ชันการโหลดและบันทึกการตั้งค่าของเซิร์ฟเวอร์
 def get_server_config(guild_id):
     server_config_path = f"configs/{guild_id}.json"
@@ -89,16 +82,50 @@ def get_server_config(guild_id):
         logging.info(f"ℹ️ ไม่มีไฟล์การตั้งค่าสำหรับเซิร์ฟเวอร์ {guild_id}. ใช้ค่าดีฟอลต์แทน")
         return {"notify_channel_id": None}
 
+# ฟังก์ชันการบันทึกการตั้งค่าของเซิร์ฟเวอร์ไปยัง GitHub
+def save_server_config_to_github(guild_id, server_config):
+    repo_owner = "fomm1802"  # ชื่อเจ้าของ repository
+    repo_name = "Bot"  # ชื่อ repository
+    file_path = f"configs/{guild_id}.json"  # ที่อยู่ไฟล์ใน repository
+    github_token = os.getenv("GITHUB_TOKEN")  # ดึง GITHUB_TOKEN จาก .env
+    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{file_path}"
+    
+    # ดึงข้อมูลไฟล์จาก GitHub ถ้ามีอยู่
+    response = requests.get(url, headers={"Authorization": f"Bearer {github_token}"})
+    if response.status_code == 200:
+        file_info = response.json()
+        sha = file_info['sha']  # SHA ของไฟล์ใน GitHub
+    else:
+        sha = None  # ถ้าไม่มีไฟล์ ให้สร้างไฟล์ใหม่
+    
+    # เข้ารหัสเนื้อหาการตั้งค่าเป็น Base64
+    encoded_content = base64.b64encode(json.dumps(server_config, indent=4).encode()).decode()
+    
+    # ข้อมูลที่จะส่งไปยัง GitHub
+    data = {
+        "message": f"Update config for guild {guild_id}",
+        "content": encoded_content,
+        "branch": "main",  # ใช้ branch ที่ต้องการ
+    }
+    if sha:
+        data["sha"] = sha  # ถ้ามีไฟล์อยู่แล้ว จะใช้ SHA ในการอัปเดต
+    
+    # ส่งคำขอ PUT ไปยัง GitHub API
+    response = requests.put(url, headers={"Authorization": f"Bearer {github_token}"}, json=data)
+    
+    if response.status_code in (200, 201):
+        logging.info(f"✅ อัปเดตไฟล์ {file_path} สำเร็จใน GitHub!")
+    else:
+        logging.error(f"❌ ไม่สามารถอัปเดตไฟล์ {file_path} ใน GitHub: {response.status_code} {response.text}")
+
+# ฟังก์ชันในการบันทึกการตั้งค่าของเซิร์ฟเวอร์
 def save_server_config(guild_id, server_config):
+    save_server_config_to_github(guild_id, server_config)  # อัปเดตไฟล์ใน GitHub
+    # ถ้าคุณต้องการบันทึกลงไฟล์ในเครื่อง ให้ใช้โค้ดนี้
     server_config_path = f"configs/{guild_id}.json"
     os.makedirs(os.path.dirname(server_config_path), exist_ok=True)
     with open(server_config_path, "w") as file:
         json.dump(server_config, file, indent=4)
-
-    # อัปเดตไฟล์ใน GitHub
-    run_git_command("git add configs/")
-    run_git_command(f'git commit -m "Update notify channel for guild {guild_id}"')
-    run_git_command("git push origin main")
 
 # ฟังก์ชันในการตั้งค่าช่องแจ้งเตือน
 @bot.command(name='set_notify_channel')
@@ -112,7 +139,7 @@ async def set_notify_channel(ctx):
     
     # บันทึกการตั้งค่า
     server_config['notify_channel_id'] = channel_id
-    save_server_config(guild_id, server_config)
+    save_server_config(guild_id, server_config)  # บันทึกการตั้งค่าไปยัง GitHub และเครื่อง
     
     await ctx.send(f"🔔 ช่องแจ้งเตือนถูกตั้งค่าเป็น: <#{channel_id}> สำหรับเซิร์ฟเวอร์นี้เรียบร้อยแล้ว!")
 
@@ -121,7 +148,7 @@ initial_extensions = [
     "events.voice_events",
 ]
 
-os.system('cls' if os.name == 'nt' else 'clear')
+os.system('clear')
 
 logo = """
  GGGGG    U   U   RRRR    AAAAA      BBBB     OOO    TTTTT
