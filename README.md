@@ -1,4 +1,4 @@
-# Bot Status: [Link](https://bot-q3x1.onrender.com)
+# Bot Status: [Link](https://bot-15bm.onrender.com)
 
 ## Command:
 !set_notify_channel <Channel ID>
