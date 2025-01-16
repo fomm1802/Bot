@@ -233,6 +233,7 @@
       <p>Uptime: <span id="uptime" class="uptime">Calculating...</span></p>
       <p>Bot Status: <span id="bot_status" class="status">Loading...</span></p>
       <p>Number of Servers: <span id="server_count" class="status">Loading...</span></p>
+      <p><button id="update_github" class="notify">Update GitHub File</button></p>
     </div>
 
     <footer>&copy; 2025 Gawr Gura Dashboard | Designed with 🦈❤️</footer>
@@ -263,15 +264,22 @@
 
       function updateServerCount() {
         fetch('/server_count')
-          .then(response => response.text())
+          .then(response => response.json())
           .then(data => {
-            document.getElementById('server_count').innerText = data;
+            document.getElementById('server_count').innerText = data.count;
           })
           .catch(error => {
             document.getElementById('server_count').innerText = 'Error loading';
             console.error(error);
           });
       }
+
+      document.getElementById('update_github').addEventListener('click', () => {
+        fetch('/update_github_file', { method: 'POST' })
+          .then(response => response.text())
+          .then(data => alert(data))
+          .catch(error => console.error('Error:', error));
+      });
 
       setInterval(updateUptime, 1000);
       setInterval(() => fetchAndUpdate('bot_status', '/bot_status'), 5000);
