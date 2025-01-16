@@ -6,6 +6,7 @@ import os
 import logging
 from myserver import keep_alive
 from dotenv import load_dotenv
+import subprocess
 import time
 
 # ฟังก์ชันในการโหลดการตั้งค่าจากไฟล์ config.json
@@ -66,6 +67,14 @@ async def update_presence():
     uptime = get_uptime()
     await bot.change_presence(activity=discord.Game(name=f"Online for {uptime}"))
 
+# ฟังก์ชันการจัดการ Git
+def run_git_command(command):
+    try:
+        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        logging.info(result.stdout.strip())
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Git command failed: {e.stderr.strip()}")
+
 # ฟังก์ชันการโหลดและบันทึกการตั้งค่าของเซิร์ฟเวอร์
 def get_server_config(guild_id):
     server_config_path = f"configs/{guild_id}.json"
@@ -85,6 +94,11 @@ def save_server_config(guild_id, server_config):
     os.makedirs(os.path.dirname(server_config_path), exist_ok=True)
     with open(server_config_path, "w") as file:
         json.dump(server_config, file, indent=4)
+
+    # อัปเดตไฟล์ใน GitHub
+    run_git_command("git add configs/")
+    run_git_command(f'git commit -m "Update notify channel for guild {guild_id}"')
+    run_git_command("git push origin main")
 
 # ฟังก์ชันในการตั้งค่าช่องแจ้งเตือน
 @bot.command(name='set_notify_channel')
@@ -107,7 +121,7 @@ initial_extensions = [
     "events.voice_events",
 ]
 
-os.system('clear')
+os.system('cls' if os.name == 'nt' else 'clear')
 
 logo = """
  GGGGG    U   U   RRRR    AAAAA      BBBB     OOO    TTTTT
@@ -147,5 +161,6 @@ async def on_ready():
     update_presence.start()  # เริ่มต้นการอัปเดตสถานะ
 
 if __name__ == "__main__":
+    load_dotenv()  # Load environment variables from .env file
     keep_alive()  # ถ้าคุณมี server ที่คอยเปิดบอทในกรณีที่ต้องการทำงาน 24/7
     asyncio.run(main())
