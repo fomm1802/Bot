@@ -49,7 +49,7 @@ def count_servers_in_config_folder():
 
 GITHUB_API_URL = "https://api.github.com"
 GITHUB_REPO = "fomm1802/Bot"
-GITHUB_FILE_PATH = "configs/config.json"
+GITHUB_FILE_PATH = "configs/"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
 def update_github_file():
