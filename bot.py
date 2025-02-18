@@ -173,6 +173,7 @@ async def set_notify_channel(ctx):
 # รายการ Extension ที่จะโหลด
 initial_extensions = [
     "events.voice_events",
+    "events.linkdetection"
 ]
 
 os.system('clear')
