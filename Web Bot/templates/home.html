@@ -247,12 +247,12 @@
         fetch(endpoint)
           .then(response => response.text())
           .then(data => {
-            console.log(`Fetched ${id}:`, data);  // Add this line
+            console.log(`Fetched ${id}:`, data);
             document.getElementById(id).innerText = data;
           })
           .catch(error => {
             document.getElementById(id).innerText = 'Error loading';
-            console.error(`Error fetching ${id}:`, error);  // Add this line
+            console.error(`Error fetching ${id}:`, error);
           });
       }
 
@@ -260,12 +260,12 @@
         fetch('/server_count')
           .then(response => response.json())
           .then(data => {
-            console.log('Fetched server count:', data);  // Add this line
+            console.log('Fetched server count:', data);
             document.getElementById('server_count').innerText = data.count;
           })
           .catch(error => {
             document.getElementById('server_count').innerText = 'Error loading';
-            console.error('Error fetching server count:', error);  // Add this line
+            console.error('Error fetching server count:', error);
           });
       }
 
