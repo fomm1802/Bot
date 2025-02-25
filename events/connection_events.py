@@ -21,8 +21,8 @@ class ConnectionEvents(commands.Cog):
         await self.retry_connect()
 
     async def retry_connect(self):
-        retry_delay = 5  # Initial delay in seconds
-        max_retries = 5  # Maximum number of retries
+        retry_delay = 5
+        max_retries = 5
         for attempt in range(max_retries):
             try:
                 await self.bot.close()
@@ -33,7 +33,7 @@ class ConnectionEvents(commands.Cog):
             except Exception as e:
                 logging.error(f"Reconnect attempt {attempt + 1} failed: {e}")
                 await asyncio.sleep(retry_delay)
-                retry_delay *= 2  # Exponential backoff
+                retry_delay *= 2
 
 async def setup(bot):
     await bot.add_cog(ConnectionEvents(bot))
