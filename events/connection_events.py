@@ -10,7 +10,6 @@ async def on_ready(bot):
         bot.update_presence.start()
 
 async def on_disconnect(bot):
-    os.environ["BOT_STATUS"] = "not_running"
     logging.warning("Bot disconnected! Attempting to reconnect...")
     await retry_connect(bot)
 
@@ -21,7 +20,6 @@ async def retry_connect(bot):
         try:
             await bot.close()
             await bot.start(os.getenv("BOT_TOKEN"))
-            os.environ["BOT_STATUS"] = "running"
             logging.info("Reconnected successfully!")
             return
         except Exception as e:
