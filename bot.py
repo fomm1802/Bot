@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import time
 import base64
 import requests
+from myserver import keep_alive  # Import keep_alive function
 
 config = {
     "prefix": "!"
@@ -101,6 +102,7 @@ async def load_extensions():
 # ฟังก์ชันหลัก
 async def main():
     load_dotenv()
+    keep_alive()  # Start the Flask server
     await load_extensions()
     await bot.start(os.getenv("BOT_TOKEN"))
 
