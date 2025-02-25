@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import os
 from discord.ext import commands
 
 class ConnectionEvents(commands.Cog):
@@ -7,7 +8,14 @@ class ConnectionEvents(commands.Cog):
         self.bot = bot
 
     @commands.Cog.listener()
+    async def on_ready(self):
+        os.environ["BOT_STATUS"] = "running"
+        logging.info(f"Bot is online as {self.bot.user}")
+        self.bot.update_presence.start()
+
+    @commands.Cog.listener()
     async def on_disconnect(self):
+        os.environ["BOT_STATUS"] = "not_running"
         logging.warning("Bot disconnected! Attempting to reconnect...")
         await self.retry_connect()
 
@@ -17,6 +25,7 @@ class ConnectionEvents(commands.Cog):
         for attempt in range(max_retries):
             try:
                 await self.bot.connect(reconnect=True)
+                os.environ["BOT_STATUS"] = "running"
                 logging.info("Reconnected successfully!")
                 return
             except Exception as e:
