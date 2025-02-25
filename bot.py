@@ -98,13 +98,22 @@ async def set_notify_channel(ctx):
 
 # โหลด Extensions อัตโนมัติจากโฟลเดอร์ events/
 async def load_extensions():
+    # โหลด Events
     events_path = "events"
-    if not os.path.exists(events_path):
-        os.makedirs(events_path)  # สร้างโฟลเดอร์ events หากไม่มี
-    
     for filename in os.listdir(events_path):
         if filename.endswith(".py"):
             ext = f"events.{filename[:-3]}"
+            try:
+                await bot.load_extension(ext)
+                logging.info(f"✅ โหลด {ext} สำเร็จ!")
+            except Exception as e:
+                logging.error(f"❌ โหลด {ext} ล้มเหลว: {e}")
+
+    # โหลด Commands
+    commands_path = "commands"
+    for filename in os.listdir(commands_path):
+        if filename.endswith(".py"):
+            ext = f"commands.{filename[:-3]}"
             try:
                 await bot.load_extension(ext)
                 logging.info(f"✅ โหลด {ext} สำเร็จ!")
