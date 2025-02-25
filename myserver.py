@@ -73,7 +73,7 @@ def update_github_file(file_path, new_content):
 @app.route('/')
 def home():
     server_count = count_servers_in_config_folder()
-    return render_template("home.html", start_time=start_time.timestamp(), server_count=server_count)
+    return render_template("home.html", start_time=start_time.isoformat(), server_count=server_count)
 
 # Route: ตรวจสอบสถานะบอท
 @app.route('/bot_status')

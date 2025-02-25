@@ -239,7 +239,7 @@
 
     <script>
       function updateCreatedTime() {
-        const startTime = new Date("{{ start_time|tojson }}");
+        const startTime = new Date("{{ start_time }}");
         document.getElementById('created_time').innerText = startTime.toLocaleString();
       }
 
