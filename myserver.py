@@ -23,20 +23,6 @@ except (FileNotFoundError, ValueError):
     with open(start_time_path, "w") as file:
         file.write(start_time.isoformat())
 
-# ฟังก์ชันโหลด config หลัก
-def load_config():
-    config_path = "config.json"
-    try:
-        with open(config_path, "r") as file:
-            return json.load(file)
-    except FileNotFoundError:
-        raise FileNotFoundError("Config file not found")
-    except json.JSONDecodeError:
-        raise ValueError("Error reading config file")
-
-# โหลด config
-config = load_config()
-
 # ฟังก์ชันดึง config ของ server
 def get_server_config(guild_id):
     server_config_path = f"configs/{guild_id}.json"
