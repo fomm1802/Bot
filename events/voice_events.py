@@ -9,6 +9,11 @@ class VoiceEvents(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    def get_voice_channel_name(self, member):
+        if member.voice and member.voice.channel:
+            return member.voice.channel.name
+        return None
+
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         if member.bot:
@@ -50,7 +55,10 @@ class VoiceEvents(commands.Cog):
         if before.channel is None and after.channel is not None:
             if after.channel.name == "Join Here":
                 await asyncio.sleep(1)
-                after = member.voice
+                after_channel_name = self.get_voice_channel_name(member)
+                if after_channel_name:
+                    await channel.send(embed=create_embed("join", member, after_channel=after_channel_name))
+                return
             await channel.send(embed=create_embed("join", member, after_channel=after.channel.name))
 
         elif before.channel is not None and after.channel is None:

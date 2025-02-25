@@ -230,7 +230,7 @@
 
     <div class="container">
       <h1><i class="fas fa-shark"></i> Gawr Gura Fan Site</h1>
-      <p>Uptime: <span id="uptime" class="uptime">Calculating...</span></p>
+      <p>Created Time: <span id="uptime" class="uptime">Calculating...</span></p>
       <p>Bot Status: <span id="bot_status" class="status">Loading...</span></p>
       <p>Number of Servers: <span id="server_count" class="status">Loading...</span></p>
     </div>
@@ -239,7 +239,7 @@
 
     <script>
       function updateUptime() {
-        const startTime = new Date({{ start_time|safe }} * 1000);
+        const startTime = new Date("{{ start_time|tojson }}");
         const now = new Date();
         const uptime = new Date(now - startTime);
         const days = Math.floor(uptime / (1000 * 60 * 60 * 24));

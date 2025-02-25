@@ -5,6 +5,7 @@ import os
 import json
 import logging
 import requests
+import base64  # Add this import
 
 app = Flask(__name__, template_folder='Web Bot/templates', static_folder='Web Bot/static')
 

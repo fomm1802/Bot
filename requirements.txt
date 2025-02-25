@@ -3,4 +3,3 @@ discord.py==2.4.0
 requests==2.25.1
 python-dotenv==1.0.1
 PyGithub==2.5.0
-subprocess.run==0.0.8
