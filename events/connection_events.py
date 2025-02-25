@@ -25,7 +25,8 @@ class ConnectionEvents(commands.Cog):
         max_retries = 5  # Maximum number of retries
         for attempt in range(max_retries):
             try:
-                await self.bot.connect(reconnect=True)
+                await self.bot.close()
+                await self.bot.start(os.getenv("BOT_TOKEN"))
                 os.environ["BOT_STATUS"] = "running"
                 logging.info("Reconnected successfully!")
                 return
