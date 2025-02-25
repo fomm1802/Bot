@@ -26,7 +26,8 @@ class MyBot(commands.Bot):
 
     async def setup_hook(self):
         self.update_presence_task = self.loop.create_task(self.update_presence())
-        await self.load_extensions()  # โหลดส่วนขยายที่นี่แทน
+        await self.load_extensions()
+        logging.info(f"✅ Bot is online as {self.user}")  # ย้าย log มาที่นี่
 
     def get_uptime(self):
         s = int(time.time() - self.start_time)
@@ -48,9 +49,6 @@ class MyBot(commands.Bot):
                         logging.info(f"✅ โหลด {ext} สำเร็จ!")
                     except Exception as e:
                         logging.error(f"❌ โหลด {ext} ล้มเหลว: {e}")
-
-    async def on_ready(self):
-        logging.info(f"✅ Bot is online as {self.user}")
 
 async def main():
     load_dotenv()
