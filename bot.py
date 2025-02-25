@@ -8,34 +8,29 @@ from dotenv import load_dotenv
 import time
 import base64
 import requests
-from myserver import keep_alive  # Import keep_alive function
+from myserver import keep_alive
 
 config = {
     "prefix": "!"
 }
 
-# ตั้งค่า logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
-# ตั้งค่า Intents
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=config["prefix"], intents=intents)
 bot.config = config
 start_time = time.time()
 
-# คำนวณเวลา uptime
 def get_uptime():
     s = int(time.time() - start_time)
     return f"{s//3600}h {(s%3600)//60}m {s%60}s"
 
-# อัปเดตสถานะบอท
 @tasks.loop(seconds=5)
 async def update_presence():
     await bot.change_presence(activity=discord.Game(name=f"Online for {get_uptime()}"))
 
 bot.update_presence = update_presence
 
-# โหลดค่าการตั้งค่าของเซิร์ฟเวอร์
 def get_server_config(guild_id):
     path = f"configs/{guild_id}.json"
     if os.path.exists(path):
@@ -46,9 +41,7 @@ def get_server_config(guild_id):
             logging.error(f"❌ อ่านไฟล์ {guild_id}.json ไม่ได้")
     return {"notify_channel_id": None}
 
-# จัดการการตั้งค่าเซิร์ฟเวอร์
 def save_server_config(guild_id, server_config):
-    # บันทึกลง GitHub
     url = f"https://api.github.com/repos/fomm1802/Bot/contents/configs/{guild_id}.json"
     headers = {"Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}"}
     response = requests.get(url, headers=headers)
@@ -61,13 +54,17 @@ def save_server_config(guild_id, server_config):
     res = requests.put(url, headers=headers, json=data)
     logging.info(f"✅ อัปเดตไฟล์สำเร็จ" if res.status_code in (200, 201) else f"❌ อัปเดตล้มเหลว {res.text}")
 
-    # บันทึกลงไฟล์
     path = f"configs/{guild_id}.json"
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as file:
         json.dump(server_config, file, indent=4)
 
-# โหลด Extensions อัตโนมัติจากโฟลเดอร์ events/ และ commands/
+async def exists_on_github(guild_id):
+    url = f"https://api.github.com/repos/fomm1802/Bot/contents/configs/{guild_id}.json"
+    headers = {"Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}"}
+    response = requests.get(url, headers=headers)
+    return response.status_code == 200
+
 async def load_extensions():
     for folder in ["events", "commands"]:
         for file in os.listdir(folder):
@@ -79,12 +76,16 @@ async def load_extensions():
                 except Exception as e:
                     logging.error(f"❌ โหลด {ext} ล้มเหลว: {e}")
 
-# ฟังก์ชันหลัก
 async def main():
     load_dotenv()
-    keep_alive()  # Start the Flask server
+    keep_alive()
     await load_extensions()
-    await bot.start(os.getenv("BOT_TOKEN"))
+    while True:
+        try:
+            await bot.start(os.getenv("BOT_TOKEN"))
+        except Exception as e:
+            logging.error(f"Bot encountered an error: {e}")
+            await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(main())
