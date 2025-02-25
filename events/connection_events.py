@@ -1,13 +1,17 @@
 import logging
 import asyncio
 import os
+import discord
 from discord.ext import commands
 
 async def on_ready(bot):
     os.environ["BOT_STATUS"] = "running"
     logging.info(f"Bot is online as {bot.user}")
-    if not bot.update_presence.is_running():
-        bot.update_presence.start()
+    try:
+        if hasattr(bot, 'update_presence_task') and not bot.update_presence_task.is_running():
+            bot.update_presence_task.start()
+    except Exception as e:
+        logging.warning(f"Could not start presence task: {e}")
 
 async def on_disconnect(bot):
     logging.warning("Bot disconnected! Attempting to reconnect...")

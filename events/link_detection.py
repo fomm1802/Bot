@@ -2,8 +2,7 @@ import discord
 from discord.ext import commands
 import asyncio
 
-async def on_message(message, bot):
-    bot = message.guild.me
+async def on_message(message):
     if message.author.bot or not message.guild:
         return  
 
@@ -32,7 +31,7 @@ async def on_message(message, bot):
             except discord.HTTPException as e:
                 print(f"❌ ลบข้อความไม่สำเร็จ: {e}")
 
-    await bot.process_commands(message)
+    await message.bot.process_commands(message)
 
 async def setup(bot):
     bot.add_listener(on_message, 'on_message')

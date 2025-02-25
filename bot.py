@@ -6,8 +6,6 @@ import os
 import logging
 from dotenv import load_dotenv
 import time
-import base64
-import requests
 from myserver import keep_alive
 
 # ตั้งค่าพื้นฐาน
@@ -17,8 +15,9 @@ config = {
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-# เปิด Intent ทั้งหมด
-intents = discord.Intents.all()
+# เปิด Intent ที่จำเป็น
+intents = discord.Intents.default()
+intents.message_content = True  # เปิด Intent สำหรับเนื้อหาข้อความ
 
 class MyBot(commands.Bot):
     def __init__(self, *args, **kwargs):
@@ -41,8 +40,11 @@ class MyBot(commands.Bot):
         """ อัปเดตสถานะของบอททุก ๆ 5 วินาที """
         await self.wait_until_ready()
         while not self.is_closed():
-            await self.change_presence(activity=discord.Game(name=f"Online for {self.get_uptime()}"))
-            await asyncio.sleep(5)
+            try:
+                await self.change_presence(activity=discord.Game(name=f"Online for {self.get_uptime()}"))
+                await asyncio.sleep(5)
+            except Exception as e:
+                logging.error(f"Error updating presence: {e}")
 
     async def load_extensions(self):
         """ โหลดไฟล์ในโฟลเดอร์ `events/` และ `commands/` อัตโนมัติ """

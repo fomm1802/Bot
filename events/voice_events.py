@@ -5,7 +5,7 @@ import asyncio
 from datetime import datetime
 from utils import get_server_config
 
-async def on_voice_state_update(bot, member, before, after):
+async def on_voice_state_update(member, before, after):
     if member.bot:
         return
 
