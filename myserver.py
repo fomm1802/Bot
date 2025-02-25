@@ -120,7 +120,8 @@ def update_github_file_route():
 
 # ฟังก์ชันรันเซิร์ฟเวอร์ Flask
 def run():
-    app.run(host='0.0.0.0', port=8080)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
 
 # ฟังก์ชัน keep_alive
 def keep_alive():
