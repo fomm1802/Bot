@@ -6,7 +6,6 @@ import os
 import logging
 from dotenv import load_dotenv
 import time
-from myserver import keep_alive
 import base64
 import requests
 
@@ -100,6 +99,9 @@ async def set_notify_channel(ctx):
 # โหลด Extensions อัตโนมัติจากโฟลเดอร์ events/
 async def load_extensions():
     events_path = "events"
+    if not os.path.exists(events_path):
+        os.makedirs(events_path)  # สร้างโฟลเดอร์ events หากไม่มี
+    
     for filename in os.listdir(events_path):
         if filename.endswith(".py"):
             ext = f"events.{filename[:-3]}"
@@ -117,7 +119,6 @@ async def on_ready():
 # ฟังก์ชันหลัก
 async def main():
     load_dotenv()
-    keep_alive()
     await load_extensions()
     await bot.start(os.getenv("BOT_TOKEN"))
 
