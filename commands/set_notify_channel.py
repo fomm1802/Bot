@@ -1,6 +1,6 @@
 from discord.ext import commands
 import logging
-from bot import get_server_config, save_server_config, exists_on_github
+from utils import get_server_config, save_server_config, exists_on_github
 
 @commands.command(name='set_notify_channel')
 @commands.has_permissions(administrator=True)

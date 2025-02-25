@@ -23,15 +23,17 @@ class MyBot(commands.Bot):
         super().__init__(*args, **kwargs)
         self.config = config
         self.start_time = time.time()
-        self.update_presence.start()
+        self.update_presence_task = self.loop.create_task(self.update_presence())
 
     def get_uptime(self):
         s = int(time.time() - self.start_time)
         return f"{s//3600}h {(s%3600)//60}m {s%60}s"
 
-    @tasks.loop(seconds=5)
     async def update_presence(self):
-        await self.change_presence(activity=discord.Game(name=f"Online for {self.get_uptime()}"))
+        await self.wait_until_ready()
+        while not self.is_closed():
+            await self.change_presence(activity=discord.Game(name=f"Online for {self.get_uptime()}"))
+            await asyncio.sleep(5)
 
     def get_server_config(self, guild_id):
         path = f"configs/{guild_id}.json"
@@ -80,8 +82,6 @@ class MyBot(commands.Bot):
 
     async def on_ready(self):
         logging.info(f"Bot is online as {self.user}")
-        if not self.update_presence.is_running():
-            self.update_presence.start()
 
 async def main():
     load_dotenv()

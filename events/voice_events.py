@@ -3,7 +3,7 @@ from discord.ext import commands
 import logging
 import asyncio
 from datetime import datetime
-from bot import get_server_config
+from utils import get_server_config
 
 async def on_voice_state_update(bot, member, before, after):
     if member.bot:
