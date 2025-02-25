@@ -76,6 +76,12 @@ async def load_extensions():
                 except Exception as e:
                     logging.error(f"❌ โหลด {ext} ล้มเหลว: {e}")
 
+@bot.event
+async def on_ready():
+    logging.info(f"Bot is online as {bot.user}")
+    if not bot.update_presence.is_running():
+        bot.update_presence.start()
+
 async def main():
     load_dotenv()
     keep_alive()
