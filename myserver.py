@@ -79,7 +79,7 @@ def home():
 @app.route('/bot_status')
 def get_bot_status():
     bot_status = "Running" if os.getenv("BOT_STATUS") == "running" else "Not running"
-    return bot_status
+    return jsonify({"status": bot_status})
 
 # Route: รีเซ็ต uptime
 @app.route('/reset_uptime', methods=['POST'])
