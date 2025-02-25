@@ -11,7 +11,8 @@ class ConnectionEvents(commands.Cog):
     async def on_ready(self):
         os.environ["BOT_STATUS"] = "running"
         logging.info(f"Bot is online as {self.bot.user}")
-        self.bot.update_presence.start()
+        if not self.bot.update_presence.is_running():
+            self.bot.update_presence.start()
 
     @commands.Cog.listener()
     async def on_disconnect(self):
