@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import asyncio
 
-async def on_message(message):
+async def on_message(message, bot):
     bot = message.guild.me
     if message.author.bot or not message.guild:
         return  
