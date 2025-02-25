@@ -23,6 +23,8 @@ class MyBot(commands.Bot):
         super().__init__(*args, **kwargs)
         self.config = config
         self.start_time = time.time()
+
+    async def setup_hook(self):
         self.update_presence_task = self.loop.create_task(self.update_presence())
 
     def get_uptime(self):
