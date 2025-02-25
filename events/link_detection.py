@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-import asyncio
+import re
 
 class LinkDetection(commands.Cog):
     def __init__(self, bot):
@@ -8,35 +8,28 @@ class LinkDetection(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author.bot or not message.guild:
-            return  
+        # ไม่ตรวจสอบข้อความจาก bot
+        if message.author.bot:
+            return
 
-        urls = [word for word in message.content.split() if word.startswith(("http://", "https://"))]
+        # ตรวจหาลิงก์ในข้อความ
+        urls = re.findall(r'(https?://\S+)', message.content)
 
+        # ถ้าพบลิงก์
         if urls:
-            sender = message.author
+            # สร้าง embed
             embed = discord.Embed(
-                title="🔍 ตรวจพบลิงก์",
-                description=f"{sender.mention} **ส่งลิงก์มา**",
+                title="🔍 พบลิงก์",
+                description=f"ส่งโดย {message.author.mention}",
                 color=discord.Color.blue()
             )
+
+            # เพิ่มลิงก์ที่พบลงใน embed
             for url in urls:
-                embed.add_field(name="🌐 ลิงก์ที่พบ", value=url, inline=False)
-            embed.set_footer(text=f"โดย {discord.utils.escape_markdown(sender.display_name)} ({sender.name})", icon_url=sender.display_avatar.url)
+                embed.add_field(name="🌐 ลิงก์:", value=url, inline=False)
+
+            # ส่ง embed
             await message.channel.send(embed=embed)
-
-            if message.channel.permissions_for(message.guild.me).manage_messages:
-                await asyncio.sleep(1)
-                try:
-                    await message.delete()
-                except discord.NotFound:
-                    print("⚠️ ข้อความถูกลบไปแล้ว หรือไม่พบข้อความ")
-                except discord.Forbidden:
-                    print(f"⚠️ ไม่มีสิทธิ์ลบข้อความในช่อง {message.channel}")
-                except discord.HTTPException as e:
-                    print(f"❌ ลบข้อความไม่สำเร็จ: {e}")
-
-        await self.bot.process_commands(message)
 
 async def setup(bot):
     await bot.add_cog(LinkDetection(bot))
