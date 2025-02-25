@@ -8,7 +8,8 @@ class ReadyEvent(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         logging.info(f"Bot is online as {self.bot.user}")
-        self.bot.update_presence.start()
+        if not self.bot.update_presence.is_running():
+            self.bot.update_presence.start()
 
 async def setup(bot):
     await bot.add_cog(ReadyEvent(bot))
