@@ -90,12 +90,7 @@ async def main():
     keep_alive()
     bot = MyBot(command_prefix=config["prefix"], intents=intents)
     await bot.load_extensions()
-    while True:
-        try:
-            await bot.start(os.getenv("BOT_TOKEN"))
-        except Exception as e:
-            logging.error(f"Bot encountered an error: {e}")
-            await asyncio.sleep(5)
+    await bot.start(os.getenv("BOT_TOKEN"))
 
 if __name__ == "__main__":
     asyncio.run(main())
