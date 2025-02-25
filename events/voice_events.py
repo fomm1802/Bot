@@ -3,7 +3,7 @@ from discord.ext import commands
 import logging
 import asyncio
 from datetime import datetime
-from bot import get_server_config  # นำเข้าฟังก์ชัน get_server_config จาก bot.py
+from bot import ServerConfig  # เปลี่ยนเป็นใช้ ServerConfig class
 
 class VoiceEvents(commands.Cog):
     def __init__(self, bot):
@@ -20,7 +20,7 @@ class VoiceEvents(commands.Cog):
             return
 
         # ดึงการตั้งค่าช่องแจ้งเตือนจากไฟล์ของเซิร์ฟเวอร์
-        server_config = get_server_config(member.guild.id)
+        server_config = ServerConfig(str(member.guild.id))
         notify_channel_id = server_config.get("notify_channel_id")
         
         if not notify_channel_id:
