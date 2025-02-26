@@ -30,8 +30,9 @@ class LinkDetection(commands.Cog):
 
         await asyncio.sleep(0.5)  # หน่วงเวลาเล็กน้อยเพื่อป้องกัน latency
 
-        # ลบข้อความที่มีลิงก์ (ถ้ายังมีอยู่)
+        # ตรวจสอบว่าข้อความยังมีอยู่ก่อนลบ
         try:
+            await message.channel.fetch_message(message.id)
             await message.delete()
         except discord.NotFound:
             return  # ข้อความถูกลบไปแล้ว ไม่ต้องทำอะไร
