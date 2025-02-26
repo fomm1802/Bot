@@ -29,9 +29,6 @@ class LinkDetection(commands.Cog):
         except discord.Forbidden:
             return  # ไม่มีสิทธิ์ลบ
 
-        # 📌 ดึงบทบาทของผู้ใช้ (ไม่รวม @everyone)
-        roles = " ".join([role.mention for role in message.author.roles if role.name != "@everyone"]) or "ไม่มีบทบาท"
-
         # 📌 ใช้ datetime ปกติ
         created_at = message.created_at or datetime.utcnow()
         formatted_time = created_at.strftime("วัน%Aที่ %d %B %Y %H:%M")
@@ -42,13 +39,12 @@ class LinkDetection(commands.Cog):
             description=f"ส่งโดย {message.author.mention}",
             color=discord.Color.red()
         )
-        embed.set_thumbnail(url=message.author.display_avatar.url)
-        embed.add_field(name="👤 **ผู้ส่ง**", value=f"📛 **ชื่อ:** {message.author.name}\n🏷️ **ชื่อในเซิร์ฟเวอร์:** {message.author.display_name}\n🆔 **ID:** {message.author.id}", inline=False)
-        embed.add_field(name="📝 **ยศ**", value=roles, inline=False)
-        embed.add_field(name="⏰ **เวลา**", value=formatted_time, inline=False)
+        embed.add_field(name="👤 ผู้ส่ง", value=f"📛 ชื่อ: {message.author.name}\n🏷️ ชื่อในเซิร์ฟเวอร์: {message.author.display_name}\n🆔 ID: {message.author.id}", inline=False)
+        embed.add_field(name="📝 ยศ", value=" ".join([role.mention for role in message.author.roles if role.name != "@everyone"]) or "ไม่มีบทบาท", inline=False)
+        embed.add_field(name="⏰ เวลา", value=formatted_time, inline=False)
 
         for i, url in enumerate(urls, 1):
-            embed.add_field(name=f"🌐 **ลิงก์ที่ {i}:**", value=url, inline=False)
+            embed.add_field(name=f"🌐 ลิงก์ที่ {i}:", value=url, inline=False)
 
         try:
             await message.channel.send(embed=embed)
