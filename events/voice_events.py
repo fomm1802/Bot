@@ -1,77 +1,85 @@
 import discord
 from discord.ext import commands
 import logging
+import asyncio
 from datetime import datetime
-from collections import defaultdict
+from utils import get_server_config
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-class VoiceEvents(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        # เก็บ channel ID แยกตามเซิร์ฟเวอร์
-        self.notify_channels = defaultdict(lambda: None)
-        self.cooldowns = defaultdict(datetime.now)
-        self.COOLDOWN_SECONDS = 3
+async def on_voice_state_update(
+    member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
+):
+    """ติดตามการเปลี่ยนแปลงของสมาชิกในช่องเสียงและแจ้งเตือนผ่านช่องที่กำหนด"""
 
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
-        if member.bot or not member.guild:
-            return
+    if member.bot:
+        return
 
-        current_time = datetime.now()
-        cooldown_key = f"{member.guild.id}:{member.id}"
-        
-        if (current_time - self.cooldowns[cooldown_key]).total_seconds() < self.COOLDOWN_SECONDS:
-            return
-        self.cooldowns[cooldown_key] = current_time
+    # ดึงข้อมูลการตั้งค่าของเซิร์ฟเวอร์
+    server_config = get_server_config(member.guild.id)
+    notify_channel_id = server_config.get("notify_channel_id")
 
-        if before.channel == after.channel:
-            return
+    if not notify_channel_id:
+        logging.warning(f"⚠️ เซิร์ฟเวอร์ {member.guild.id} ยังไม่ได้ตั้งค่าช่องแจ้งเตือน")
+        return
 
-        # ใช้ช่องแจ้งเตือนเฉพาะของแต่ละเซิร์ฟเวอร์
-        notify_channel = (
-            self.bot.get_channel(self.notify_channels[member.guild.id])
-            or member.guild.system_channel 
-            or discord.utils.get(member.guild.text_channels, name='general')
-        )
-        
-        if not notify_channel:
-            return
+    # ตรวจสอบว่าช่องแจ้งเตือนมีอยู่จริง
+    channel = member.guild.get_channel(notify_channel_id)
+    if not channel:
+        logging.warning(f"⚠️ ไม่พบช่องแจ้งเตือนในเซิร์ฟเวอร์ {member.guild.id}")
+        return
 
-        embed = discord.Embed(
-            color=discord.Color.blue(),
-            timestamp=current_time
-        )
-        embed.set_thumbnail(url=member.display_avatar.url)
-        
-        # เพิ่มข้อมูลเซิร์ฟเวอร์
-        embed.set_footer(text=f"เซิร์ฟเวอร์: {member.guild.name}")
+    if not channel.permissions_for(member.guild.me).send_messages:
+        logging.warning(f"⚠️ บอทไม่มีสิทธิ์ส่งข้อความใน {channel.name}")
+        return
 
-        if not before.channel and after.channel:
-            embed.title = "🎙️ เข้าห้องเสียง"
-            embed.description = f"{member.mention} เข้าห้อง {after.channel.mention}"
-            embed.color = discord.Color.green()
-        elif before.channel and not after.channel:
-            embed.title = "🔇 ออกจากห้องเสียง"
-            embed.description = f"{member.mention} ออกจากห้อง {before.channel.mention}"
-            embed.color = discord.Color.red()
+    def create_embed(
+        event_type: str, member: discord.Member, before_channel: str = None, after_channel: str = None
+    ) -> discord.Embed:
+        """สร้าง Embed สำหรับการแจ้งเตือนการเปลี่ยนแปลงช่องเสียง"""
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        embed = discord.Embed(timestamp=datetime.utcnow(), color=discord.Color.blurple())
+        embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
+
+        event_messages = {
+            "join": ("🔊 สมาชิกเข้าร่วมช่องเสียง", f"✅ **{member.mention}** ได้เข้าร่วมช่อง **{after_channel}**"),
+            "leave": ("🔇 สมาชิกออกจากช่องเสียง", f"❌ **{member.mention}** ได้ออกจากช่อง **{before_channel}**"),
+            "move": ("🔀 สมาชิกย้ายช่องเสียง", f"🔄 **{member.mention}** ได้ย้ายจาก **{before_channel}** ไปยัง **{after_channel}**"),
+        }
+
+        if event_type in event_messages:
+            embed.title, embed.description = event_messages[event_type]
+
+        embed.set_footer(text=f"🕒 เวลาที่เกิดเหตุการณ์: {now}")
+        return embed
+
+    try:
+        # ตรวจสอบเหตุการณ์เข้าร่วมช่องเสียง
+        if before.channel is None and after.channel is not None:
+            if after.channel.name == "Join Here":
+                await asyncio.sleep(1)  # รอให้ Discord อัปเดตสถานะ
+                after = member.voice
+                if after and after.channel:
+                    await channel.send(embed=create_embed("join", member, after_channel=after.channel.name))
+                return
+            await channel.send(embed=create_embed("join", member, after_channel=after.channel.name))
+
+        # ตรวจสอบเหตุการณ์ออกจากช่องเสียง
+        elif before.channel is not None and after.channel is None:
+            await channel.send(embed=create_embed("leave", member, before_channel=before.channel.name))
+
+        # ตรวจสอบเหตุการณ์ย้ายช่องเสียง
         elif before.channel != after.channel:
-            embed.title = "🔄 ย้ายห้องเสียง"
-            embed.description = f"{member.mention} ย้ายจาก {before.channel.mention} ไป {after.channel.mention}"
+            if before.channel.name == "Join Here":
+                return
+            await channel.send(
+                embed=create_embed("move", member, before_channel=before.channel.name, after_channel=after.channel.name)
+            )
 
-        try:
-            await notify_channel.send(embed=embed)
-        except Exception as e:
-            logging.error(f"❌ Error ในเซิร์ฟเวอร์ {member.guild.name}: {e}")
+    except discord.HTTPException as e:
+        logging.error(f"❌ เกิดข้อผิดพลาดขณะส่งข้อความ: {e}")
 
-    # เพิ่มคำสั่งสำหรับตั้งค่าช่องแจ้งเตือนของแต่ละเซิร์ฟเวอร์
-    @commands.has_permissions(administrator=True)
-    @commands.command(name="setnotify")
-    async def set_notify_channel(self, ctx, channel: discord.TextChannel = None):
-        channel = channel or ctx.channel
-        self.notify_channels[ctx.guild.id] = channel.id
-        await ctx.send(f"✅ ตั้งค่าช่องแจ้งเตือนเป็น {channel.mention} สำหรับเซิร์ฟเวอร์นี้แล้ว")
 
-async def setup(bot):
-    await bot.add_cog(VoiceEvents(bot))
+async def setup(bot: commands.Bot):
+    """เพิ่ม Listener ให้กับบอท"""
+    bot.add_listener(on_voice_state_update, "on_voice_state_update")
