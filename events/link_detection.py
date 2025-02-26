@@ -13,7 +13,7 @@ class LinkDetection(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        """ตรวจหาลิงก์ ลบข้อความ และส่ง Embed แจ้งเตือน"""
+        """ตรวจหาลิงก์ ส่ง Embed ก่อนลบข้อความ"""
         if message.author.bot or not message.guild:
             return  
 
@@ -27,17 +27,6 @@ class LinkDetection(commands.Cog):
         if not message.channel.permissions_for(message.guild.me).embed_links:
             await message.channel.send(f"🔍 พบลิงก์จาก {message.author.mention} แต่บอทไม่มีสิทธิ์ส่ง Embed ❌")
             return  
-
-        await asyncio.sleep(0.5)  # หน่วงเวลาเล็กน้อยเพื่อป้องกัน latency
-
-        # ตรวจสอบว่าข้อความยังมีอยู่ก่อนลบ
-        try:
-            await message.channel.fetch_message(message.id)
-            await message.delete()
-        except discord.NotFound:
-            return  # ข้อความถูกลบไปแล้ว ไม่ต้องทำอะไร
-        except discord.Forbidden:
-            return  # ไม่มีสิทธิ์ลบ
 
         # 📌 ใช้ datetime ปกติ
         created_at = message.created_at or datetime.utcnow()
@@ -60,9 +49,19 @@ class LinkDetection(commands.Cog):
         try:
             await message.channel.send(embed=embed)
         except discord.Forbidden:
-            pass  
+            return  
         except discord.HTTPException:
-            pass  
+            return  
+
+        await asyncio.sleep(0.5)  # หน่วงเวลาเล็กน้อยก่อนลบข้อความ
+
+        # ลบข้อความที่มีลิงก์ (ถ้ายังมีอยู่)
+        try:
+            await message.delete()
+        except discord.NotFound:
+            return  # ข้อความถูกลบไปแล้ว ไม่ต้องทำอะไร
+        except discord.Forbidden:
+            return  # ไม่มีสิทธิ์ลบ
 
 async def setup(bot: commands.Bot):
     """เพิ่ม Cog ให้กับบอท"""
