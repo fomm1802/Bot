@@ -46,7 +46,7 @@ class LinkDetection(commands.Cog):
             for i, link in enumerate(links, 1):
                 # ถ้าลิงก์ยาวเกินไป ให้ตัดให้สั้นลง
                 link = link if len(link) <= 1000 else link[:997] + "..."
-                embed.add_field(name=f"🌐 ลิงก์ที่ {i}:", value=link, inline=False)
+                embed.add_field(name=f"🌐 ลิงก์ที่ {i}:", value=f"[{link}]({link})", inline=False)
 
             # ส่ง embed และลบข้อความต้นฉบับ
             try:
