@@ -23,18 +23,20 @@ async def on_voice_state_update(member, before, after):
 
     def create_embed(event_type, member, before_channel=None, after_channel=None):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        embed = discord.Embed(timestamp=datetime.now(), color=discord.Color.blue())
+        embed = discord.Embed(timestamp=datetime.now(), color=discord.Color.blurple())
         embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
+        
         if event_type == "join":
-            embed.title = "🔊 เข้าช่องเสียง"
-            embed.description = f"**{member.display_name}** เข้าช่องเสียง: `{after_channel}`"
+            embed.title = "🔊 สมาชิกเข้าร่วมช่องเสียง"
+            embed.description = f"✅ **{member.mention}** ได้เข้าร่วมช่อง **{after_channel}**"
         elif event_type == "leave":
-            embed.title = "🔇 ออกจากช่องเสียง"
-            embed.description = f"**{member.display_name}** ออกจากช่องเสียง: `{before_channel}`"
+            embed.title = "🔇 สมาชิกออกจากช่องเสียง"
+            embed.description = f"❌ **{member.mention}** ได้ออกจากช่อง **{before_channel}**"
         elif event_type == "move":
-            embed.title = "🔀 ย้ายช่องเสียง"
-            embed.description = f"**{member.display_name}** ย้ายจาก `{before_channel}` ไปยัง `{after_channel}`"
-        embed.set_footer(text=f"เวลา {now}")
+            embed.title = "🔀 สมาชิกย้ายช่องเสียง"
+            embed.description = f"🔄 **{member.mention}** ได้ย้ายจาก **{before_channel}** ไปยัง **{after_channel}**"
+        
+        embed.set_footer(text=f"🕒 เวลาที่เกิดเหตุการณ์: {now}")
         return embed
 
     if before.channel is None and after.channel is not None:
