@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 
 class LinkDetection(commands.Cog):
-    """Cog ตรวจจับลิงก์และส่ง Embed แจ้งเตือน"""
+    """Cog ตรวจจับลิงก์ ลบข้อความ และส่ง Embed แจ้งเตือน"""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -12,7 +12,7 @@ class LinkDetection(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        """ตรวจหาลิงก์และส่ง Embed แจ้งเตือน"""
+        """ตรวจหาลิงก์ ลบข้อความ และส่ง Embed แจ้งเตือน"""
         if message.author.bot or not message.guild:
             return  
 
@@ -23,22 +23,29 @@ class LinkDetection(commands.Cog):
         if not message.channel.permissions_for(message.guild.me).send_messages:
             return  
 
+        # ลบข้อความที่มีลิงก์
+        try:
+            await message.delete()
+        except discord.Forbidden:
+            return  # ไม่มีสิทธิ์ลบ
+
         # 📌 ดึงบทบาทของผู้ใช้ (ไม่รวม @everyone)
         roles = " ".join([role.mention for role in message.author.roles if role.name != "@everyone"]) or "ไม่มีบทบาท"
 
         # 📌 ใช้ datetime ปกติ
         created_at = message.created_at or datetime.utcnow()
-        thai_time = created_at.strftime("วัน%Aที่ %d %B %Y %H:%M")
+        formatted_time = created_at.strftime("วัน%Aที่ %d %B %Y %H:%M")
 
+        # 📌 ส่งข้อความใหม่แทน
         embed = discord.Embed(
             title="🔍 พบลิงก์",
             description=f"ส่งโดย {message.author.mention}",
-            color=discord.Color.blue()
+            color=discord.Color.red()
         )
         embed.set_thumbnail(url=message.author.display_avatar.url)
-        embed.add_field(name="👤 **ผู้ส่ง**", value=f"📛 **ชื่อ:** {message.author.display_name}\n🏷️ **ชื่อในเซิร์ฟเวอร์:** {message.author.name}\n🆔 **ID:** {message.author.id}", inline=False)
+        embed.add_field(name="👤 **ผู้ส่ง**", value=f"📛 **ชื่อ:** {message.author.name}\n🏷️ **ชื่อในเซิร์ฟเวอร์:** {message.author.display_name}\n🆔 **ID:** {message.author.id}", inline=False)
         embed.add_field(name="📝 **ยศ**", value=roles, inline=False)
-        embed.add_field(name="⏰ **เวลา**", value=thai_time, inline=False)
+        embed.add_field(name="⏰ **เวลา**", value=formatted_time, inline=False)
 
         for i, url in enumerate(urls, 1):
             embed.add_field(name=f"🌐 **ลิงก์ที่ {i}:**", value=url, inline=False)
