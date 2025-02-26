@@ -43,15 +43,17 @@ class LinkDetection(commands.Cog):
 
         await asyncio.sleep(0.5)  # หน่วงเวลาเล็กน้อยเพื่อป้องกัน latency
 
-        # ลบข้อความที่มีลิงก์
+        # ลบข้อความที่มีลิงก์ (ถ้ายังมีอยู่)
         try:
             await message.delete()
+        except discord.NotFound:
+            return  # ข้อความถูกลบไปแล้ว ไม่ต้องทำอะไร
         except discord.Forbidden:
             return  # ไม่มีสิทธิ์ลบ
 
         # 📌 ใช้ datetime ปกติ
         created_at = message.created_at or datetime.utcnow()
-        formatted_time = created_at.strftime("%A %d %B %Y %H:%M")
+        formatted_time = created_at.strftime("วัน%Aที่ %d %B %Y %H:%M")
 
         # 📌 ส่งข้อความใหม่แทน
         embed = discord.Embed(
@@ -59,6 +61,7 @@ class LinkDetection(commands.Cog):
             description=f"ส่งโดย {message.author.mention}",
             color=discord.Color.red()
         )
+        embed.set_thumbnail(url=message.author.display_avatar.url)  # เพิ่มรูปโปรไฟล์ของผู้ส่ง
         embed.add_field(name="👤 ผู้ส่ง", value=f"📛 ชื่อ: {str(message.author.name)}\n🏷️ ชื่อในเซิร์ฟเวอร์: {str(message.author.display_name)}\n🆔 ID: {str(message.author.id)}", inline=False)
         embed.add_field(name="📝 ยศ", value=" ".join([role.mention for role in message.author.roles if role.name != "@everyone"]) or "ไม่มีบทบาท", inline=False)
         embed.add_field(name="⏰ เวลา", value=str(formatted_time), inline=False)
