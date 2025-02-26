@@ -10,7 +10,6 @@ class LinkDetection(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.link_pattern = re.compile(r"https?://[^\s]+")  # ตรวจจับลิงก์
-        self.message_cache = {}  # เก็บ ID ของข้อความที่ตรวจพบแล้ว {guild_id: {message_id: True}}
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -28,18 +27,6 @@ class LinkDetection(commands.Cog):
         if not message.channel.permissions_for(message.guild.me).embed_links:
             await message.channel.send(f"🔍 พบลิงก์จาก {message.author.mention} แต่บอทไม่มีสิทธิ์ส่ง Embed ❌")
             return  
-
-        guild_id = message.guild.id
-        message_id = message.id
-
-        # ตรวจสอบว่าข้อความนี้เคยถูกจัดการแล้วหรือไม่
-        if guild_id not in self.message_cache:
-            self.message_cache[guild_id] = {}
-
-        if message_id in self.message_cache[guild_id]:
-            return  # ข้ามถ้าข้อความนี้ถูกประมวลผลแล้ว
-
-        self.message_cache[guild_id][message_id] = True  # บันทึกว่าข้อความนี้ถูกจัดการแล้ว
 
         await asyncio.sleep(0.5)  # หน่วงเวลาเล็กน้อยเพื่อป้องกัน latency
 
@@ -75,11 +62,6 @@ class LinkDetection(commands.Cog):
             pass  
         except discord.HTTPException:
             pass  
-
-        # ล้าง Cache หลัง 10 วินาที เพื่อป้องกันการเก็บข้อมูลนานเกินไป
-        await asyncio.sleep(10)
-        if message_id in self.message_cache[guild_id]:
-            del self.message_cache[guild_id][message_id]
 
 async def setup(bot: commands.Bot):
     """เพิ่ม Cog ให้กับบอท"""
