@@ -1,34 +1,34 @@
 import discord
 from discord.ext import commands
 import re
-import logging
-
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+from datetime import datetime
 
 class LinkDetection(commands.Cog):
-    """Cog สำหรับตรวจจับลิงก์และแจ้งเตือนเมื่อพบลิงก์ในข้อความ"""
+    """Cog ตรวจจับลิงก์และส่ง Embed แจ้งเตือน"""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.link_pattern = re.compile(r"https?://[^\s]+")  # Regex ตรวจจับลิงก์
+        self.link_pattern = re.compile(r"https?://[^\s]+")  # ตรวจจับลิงก์
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        """ตรวจหาลิงก์ในข้อความและส่งแจ้งเตือนเป็น Embed"""
+        """ตรวจหาลิงก์และส่ง Embed แจ้งเตือน"""
         if message.author.bot or not message.guild:
-            return  # ข้ามข้อความจากบอทและ DM
+            return  
 
         urls = self.link_pattern.findall(message.content)
         if not urls:
-            return  # ถ้าไม่มีลิงก์ ให้ข้ามไป
+            return  
 
-        # เช็คว่าบอทมีสิทธิ์ส่งข้อความหรือไม่
         if not message.channel.permissions_for(message.guild.me).send_messages:
-            logging.warning(f"⚠️ บอทไม่มีสิทธิ์ส่งข้อความใน {message.channel.name}")
-            return
+            return  
 
-        # แสดงว่าโค้ดทำงานถึงจุดนี้
-        logging.info(f"🔍 พบลิงก์จาก {message.author.name}: {urls}")
+        # 📌 ดึงบทบาทของผู้ใช้ (ไม่รวม @everyone)
+        roles = " ".join([role.mention for role in message.author.roles if role.name != "@everyone"]) or "ไม่มีบทบาท"
+
+        # 📌 ใช้ datetime ปกติ
+        created_at = message.created_at or datetime.utcnow()
+        thai_time = created_at.strftime("วัน%Aที่ %d %B %Y %H:%M")
 
         embed = discord.Embed(
             title="🔍 พบลิงก์",
@@ -36,23 +36,20 @@ class LinkDetection(commands.Cog):
             color=discord.Color.blue()
         )
         embed.set_thumbnail(url=message.author.display_avatar.url)
-        embed.add_field(name="👤 ผู้ส่ง", value=f"ชื่อ: {message.author.display_name} (ID: {message.author.id})", inline=False)
-        embed.add_field(name="⏰ เวลา", value=f"<t:{int(message.created_at.timestamp())}:F>", inline=False)
+        embed.add_field(name="👤 **ผู้ส่ง**", value=f"📛 **ชื่อ:** {message.author.display_name}\n🏷️ **ชื่อในเซิร์ฟเวอร์:** {message.author.name}\n🆔 **ID:** {message.author.id}", inline=False)
+        embed.add_field(name="📝 **ยศ**", value=roles, inline=False)
+        embed.add_field(name="⏰ **เวลา**", value=thai_time, inline=False)
 
         for i, url in enumerate(urls, 1):
-            embed.add_field(name=f"🌐 ลิงก์ที่ {i}:", value=url, inline=False)
+            embed.add_field(name=f"🌐 **ลิงก์ที่ {i}:**", value=url, inline=False)
 
         try:
             await message.channel.send(embed=embed)
-            logging.info("✅ ส่ง Embed สำเร็จ")
         except discord.Forbidden:
-            logging.error(f"❌ บอทไม่มีสิทธิ์ส่งข้อความใน {message.channel.name}")
-        except discord.HTTPException as e:
-            logging.error(f"❌ เกิดข้อผิดพลาดในการส่งข้อความ: {e}")
-        except Exception as e:
-            logging.error(f"⚠️ ข้อผิดพลาดที่ไม่คาดคิด: {e}")
+            pass  
+        except discord.HTTPException:
+            pass  
 
 async def setup(bot: commands.Bot):
     """เพิ่ม Cog ให้กับบอท"""
-    logging.info("📌 โหลด Cog: LinkDetection")
     await bot.add_cog(LinkDetection(bot))
