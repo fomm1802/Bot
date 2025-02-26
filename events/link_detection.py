@@ -3,74 +3,76 @@ from discord.ext import commands
 import logging
 import re
 import asyncio
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-
 class LinkDetection(commands.Cog):
-    """Cog สำหรับตรวจจับและจัดการข้อความที่มีลิงก์"""
-
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot):
         self.bot = bot
+        self.processed_messages = set()  # เก็บ ID ข้อความที่ประมวลผลแล้ว
         self.link_pattern = re.compile(
-            r'(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|'
-            r'www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|'
-            r'https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|'
-            r'www\.[a-zA-Z0-9]+\.[^\s]{2,})',
+            r'(?:https?://)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)',
             re.IGNORECASE
         )
 
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        """ตรวจสอบและจัดการข้อความที่มีลิงก์"""
-        if message.author.bot:
+    async def on_message(self, message):
+        # ข้ามข้อความจากบอทและข้อความที่ประมวลผลแล้ว
+        if message.author.bot or message.id in self.processed_messages:
             return
 
-        links = self.link_pattern.findall(message.content)
+        # ค้นหาลิงก์ในข้อความ
+        links = list(set(self.link_pattern.findall(message.content)))
         if not links:
             return
 
+        # เพิ่ม ID ข้อความเข้าไปในรายการที่ประมวลผลแล้ว
+        self.processed_messages.add(message.id)
+
+        # สร้าง embed
+        embed = discord.Embed(
+            title="🔍 พบการส่งลิงก์",
+            description=f"ส่งโดย {message.author.mention}\nในช่อง {message.channel.mention}",
+            color=discord.Color.blue(),
+            timestamp=message.created_at
+        )
+
+        # เพิ่มข้อมูลผู้ส่ง
         member = message.author
         roles = [role.mention for role in member.roles[1:]]  # ข้ามยศ @everyone
         roles_text = " ".join(roles) if roles else "ไม่มียศ"
 
-        embed = discord.Embed(
-            title="🔍 พบการส่งลิงก์",
-            description=f"ส่งโดย {member.mention}",
-            color=discord.Color.blue()
-        )
+        embed.set_thumbnail(url=member.display_avatar.url)
         embed.add_field(
             name="👤 ผู้ส่ง",
-            value=f"• ชื่อ: {member.name}\n• ชื่อในเซิร์ฟเวอร์: {member.display_name}\n• ID: {member.id}",
+            value=f"• **ชื่อ:** {member.name}\n• **ชื่อในเซิร์ฟเวอร์:** {member.display_name}\n• **ID:** {member.id}",
             inline=False
         )
         embed.add_field(name="📝 ยศ", value=roles_text, inline=False)
-        embed.add_field(name="⏰ เวลา", value=f"<t:{int(message.created_at.timestamp())}:F>", inline=False)
-        embed.set_thumbnail(url=member.display_avatar.url)
 
+        # เพิ่มลิงก์ที่พบ
         for i, link in enumerate(links, 1):
-            link = link if len(link) <= 1000 else link[:997] + "..."
-            embed.add_field(name=f"🌐 ลิงก์ที่ {i}:", value=link, inline=False)
+            if not link.startswith(('http://', 'https://')):
+                link = 'http://' + link
+            embed.add_field(name=f"🌐 ลิงก์ที่ {i}:", value=f"{link}", inline=False)
 
         try:
-            if message.channel.permissions_for(message.guild.me).send_messages:
-                await message.channel.send(embed=embed)
-            else:
-                logging.warning(f"⚠️ ไม่มีสิทธิ์ส่งข้อความในช่อง {message.channel.name}")
-
+            await message.channel.send(embed=embed)
+            # ลบข้อความต้นฉบับถ้ามีสิทธิ์
             if message.channel.permissions_for(message.guild.me).manage_messages:
                 await asyncio.sleep(0.5)
-                await message.delete()
-                logging.info(f"✅ ลบข้อความของ {member.name} สำเร็จ")
-            else:
-                logging.warning("⚠️ ไม่มีสิทธิ์ในการลบข้อความ")
+                try:
+                    await message.delete()
+                    logging.info(f"✅ จัดการข้อความที่มีลิงก์จาก {member.name} สำเร็จ")
+                except Exception as e:
+                    logging.error(f"❌ ไม่สามารถลบข้อความ: {e}")
+        except Exception as e:
+            logging.error(f"❌ ไม่สามารถส่งข้อความ: {e}")
 
-        except discord.Forbidden:
-            logging.error("❌ บอทไม่มีสิทธิ์ที่จำเป็นในการส่งข้อความหรือลบข้อความ")
-        except discord.HTTPException as e:
-            logging.error(f"❌ เกิดข้อผิดพลาดในการส่งข้อความ: {e}")
+        # ล้าง processed_messages เมื่อมีมากเกินไป
+        if len(self.processed_messages) > 1000:
+            self.processed_messages.clear()
 
-
-async def setup(bot: commands.Bot):
-    """เพิ่ม Cog ให้กับบอท"""
+async def setup(bot):
     await bot.add_cog(LinkDetection(bot))
