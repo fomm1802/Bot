@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 import asyncio
 
+
 class LinkDetection(commands.Cog):
     """Cog ตรวจจับลิงก์ ลบข้อความ และส่ง Embed แจ้งเตือน"""
 
@@ -16,22 +17,24 @@ class LinkDetection(commands.Cog):
     async def on_message(self, message: discord.Message):
         """ตรวจหาลิงก์ ส่ง Embed ก่อนลบข้อความ"""
         if message.author.bot or not message.guild:
-            return  
+            return
 
         urls = self.link_pattern.findall(message.content)
         if not urls:
-            return  
+            return
 
         if not message.channel.permissions_for(message.guild.me).send_messages:
-            return  
+            return
 
         if not message.channel.permissions_for(message.guild.me).embed_links:
-            await message.channel.send(f"🔍 พบลิงก์จาก {message.author.mention} แต่บอทไม่มีสิทธิ์ส่ง Embed ❌")
-            return  
+            await message.channel.send(
+                f"🔍 พบลิงก์จาก {message.author.mention} แต่บอทไม่มีสิทธิ์ส่ง Embed ❌"
+            )
+            return
 
         # ป้องกันการประมวลผลซ้ำ
         if message.id in self.processing_messages:
-            return  
+            return
         self.processing_messages.add(message.id)
 
         # 📌 ใช้ datetime ปกติ
@@ -42,11 +45,26 @@ class LinkDetection(commands.Cog):
         embed = discord.Embed(
             title="🔍 พบลิงก์",
             description=f"ส่งโดย {message.author.mention}",
-            color=discord.Color.green()
+            color=discord.Color.green(),
         )
         embed.set_thumbnail(url=message.author.display_avatar.url)
-        embed.add_field(name="👤 ผู้ส่ง", value=f"📛 ชื่อ: {str(message.author.name)}\n🏷️ ชื่อในเซิร์ฟเวอร์: {str(message.author.display_name)}\n🆔 ID: {str(message.author.id)}", inline=False)
-        embed.add_field(name="📝 ยศ", value=" ".join([role.mention for role in message.author.roles if role.name != "@everyone"]) or "ไม่มีบทบาท", inline=False)
+        embed.add_field(
+            name="👤 ผู้ส่ง",
+            value=f"📛 ชื่อ: {str(message.author.name)}\n🏷️ ชื่อในเซิร์ฟเวอร์: {str(message.author.display_name)}\n🆔 ID: {str(message.author.id)}",
+            inline=False,
+        )
+        embed.add_field(
+            name="📝 ยศ",
+            value=" ".join(
+                [
+                    role.mention
+                    for role in message.author.roles
+                    if role.name != "@everyone"
+                ]
+            )
+            or "ไม่มีบทบาท",
+            inline=False,
+        )
         embed.add_field(name="⏰ เวลา", value=str(formatted_time), inline=False)
 
         for i, url in enumerate(urls, 1):
@@ -55,9 +73,9 @@ class LinkDetection(commands.Cog):
         try:
             await message.channel.send(embed=embed)
         except discord.Forbidden:
-            pass  
+            pass
         except discord.HTTPException:
-            pass  
+            pass
 
         await asyncio.sleep(0.5)  # หน่วงเวลาเล็กน้อยก่อนลบข้อความ
 
@@ -65,12 +83,13 @@ class LinkDetection(commands.Cog):
         try:
             await message.delete()
         except discord.NotFound:
-            pass  
+            pass
         except discord.Forbidden:
-            pass  
-        
+            pass
+
         # ลบข้อความออกจากเซ็ตเพื่อป้องกันการเก็บข้อมูลนานเกินไป
         self.processing_messages.discard(message.id)
+
 
 async def setup(bot: commands.Bot):
     """เพิ่ม Cog ให้กับบอท"""

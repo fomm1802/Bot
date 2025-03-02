@@ -3,9 +3,11 @@ from discord.ext import commands
 import logging
 import asyncio
 from datetime import datetime
+import pytz  # ใช้สำหรับการจัดการเขตเวลา
 from utils import get_server_config
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
 
 async def on_voice_state_update(
     member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
@@ -34,23 +36,40 @@ async def on_voice_state_update(
         return
 
     def create_embed(
-        event_type: str, member: discord.Member, before_channel: str = None, after_channel: str = None
+        event_type: str,
+        member: discord.Member,
+        before_channel: str = None,
+        after_channel: str = None,
     ) -> discord.Embed:
         """สร้าง Embed สำหรับการแจ้งเตือนการเปลี่ยนแปลงช่องเสียง"""
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        embed = discord.Embed(timestamp=datetime.utcnow(), color=discord.Color.blurple())
+
+        # ตั้งค่า timezone เป็นเวลาประเทศไทย (UTC+7)
+        thailand_tz = pytz.timezone("Asia/Bangkok")
+        thai_time = datetime.now(thailand_tz)
+
+        # สร้าง Embed และกำหนดเวลาในประเทศไทย
+        embed = discord.Embed(timestamp=thai_time, color=discord.Color.blurple())
         embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
 
         event_messages = {
-            "join": ("🔊 สมาชิกเข้าร่วมช่องเสียง", f"✅ **{member.display_name}** ได้เข้าร่วมช่อง **{after_channel}**"),
-            "leave": ("🔇 สมาชิกออกจากช่องเสียง", f"❌ **{member.display_name}** ได้ออกจากช่อง **{before_channel}**"),
-            "move": ("🔀 สมาชิกย้ายช่องเสียง", f"🔄 **{member.display_name}** ได้ย้ายจาก **{before_channel}** ไปยัง **{after_channel}**"),
+            "join": (
+                "🔊 สมาชิกเข้าร่วมช่องเสียง",
+                f"✅ **{member.display_name}** ได้เข้าร่วมช่อง **{after_channel}**",
+            ),
+            "leave": (
+                "🔇 สมาชิกออกจากช่องเสียง",
+                f"❌ **{member.display_name}** ได้ออกจากช่อง **{before_channel}**",
+            ),
+            "move": (
+                "🔀 สมาชิกย้ายช่องเสียง",
+                f"🔄 **{member.display_name}** ได้ย้ายจาก **{before_channel}** ไปยัง **{after_channel}**",
+            ),
         }
 
         if event_type in event_messages:
             embed.title, embed.description = event_messages[event_type]
 
-        embed.set_footer(text=f"🕒 เวลาที่เกิดเหตุการณ์: {now}")
+        embed.set_footer(text=f"🕒 เวลาที่เกิดเหตุการณ์:")
         return embed
 
     try:
@@ -60,20 +79,33 @@ async def on_voice_state_update(
                 await asyncio.sleep(1)  # รอให้ Discord อัปเดตสถานะ
                 after = member.voice
                 if after and after.channel:
-                    await channel.send(embed=create_embed("join", member, after_channel=after.channel.name))
+                    await channel.send(
+                        embed=create_embed(
+                            "join", member, after_channel=after.channel.name
+                        )
+                    )
                 return
-            await channel.send(embed=create_embed("join", member, after_channel=after.channel.name))
+            await channel.send(
+                embed=create_embed("join", member, after_channel=after.channel.name)
+            )
 
         # ตรวจสอบเหตุการณ์ออกจากช่องเสียง
         elif before.channel is not None and after.channel is None:
-            await channel.send(embed=create_embed("leave", member, before_channel=before.channel.name))
+            await channel.send(
+                embed=create_embed("leave", member, before_channel=before.channel.name)
+            )
 
         # ตรวจสอบเหตุการณ์ย้ายช่องเสียง
         elif before.channel != after.channel:
             if before.channel.name == "Join Here":
                 return
             await channel.send(
-                embed=create_embed("move", member, before_channel=before.channel.name, after_channel=after.channel.name)
+                embed=create_embed(
+                    "move",
+                    member,
+                    before_channel=before.channel.name,
+                    after_channel=after.channel.name,
+                )
             )
 
     except discord.HTTPException as e:
