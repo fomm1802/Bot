@@ -107,8 +107,10 @@ def update_github_file_route():
 
 # ฟังก์ชันรันเซิร์ฟเวอร์ Flask
 def run():
-    port = int(os.environ.get("PORT", 18012))
-    app.run(host='0.0.0.0', port=port)
+    # Fetch the port from environment variable (Render platform sets this automatically)
+    port = int(os.environ.get("PORT", 8080))  # Default to 8080 if PORT is not set
+    app.run(host='0.0.0.0', port=port)  # Bind to 0.0.0.0 to make it accessible externally
+
 
 # ฟังก์ชัน keep_alive
 def keep_alive():
