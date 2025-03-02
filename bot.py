@@ -23,7 +23,7 @@ class MyBot(commands.AutoShardedBot):
     async def setup_hook(self):
         self.update_presence_task = self.loop.create_task(self.update_presence())
         await self.load_extensions()  # Move the load_extensions call here
-        logging.info(f"✅ Node 1 Online as {self.user}")
+        logging.info(f"✅ Node 2 Online as {self.user}")
 
     def get_uptime(self):
         s = int(time.time() - self.start_time)
@@ -88,7 +88,7 @@ async def main():
         return
 
     bot = MyBot(
-        command_prefix=config["prefix"], intents=intents, shard_ids=[0], shard_count=2
+        command_prefix=config["prefix"], intents=intents, shard_ids=[1], shard_count=2
     )  # Node 1 ดูแลเฉพาะ Shard 0
     await bot.start(TOKEN)
 
