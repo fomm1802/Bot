@@ -1,7 +1,5 @@
 {
     "notify_channel_id": null,
-    "exempt_channels": [
-        1371341660969107607
-    ],
-    "exempt_guild": false
+    "exempt_channels": [],
+    "exempt_guild": true
 }
