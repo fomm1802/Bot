@@ -1,0 +1,8 @@
+{
+  "notify_channel_id": null,
+  "join_here_channel_name": null,
+  "exempt_channels": [
+    1375758672470478881
+  ],
+  "exempt_guild": false
+}
