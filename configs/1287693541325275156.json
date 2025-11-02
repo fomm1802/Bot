@@ -4,5 +4,5 @@
   "exempt_channels": [
     1375758672470478881
   ],
-  "exempt_guild": false
+  "exempt_guild": true
 }
