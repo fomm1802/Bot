@@ -1,14 +1,22 @@
 {
+  "notify_channel_id": 1324393562229702696,
+  "join_here_channel_id": 1309166130904043561,
+  "join_here_channel_name": "Join Voice Chat",
   "exempt_channels": [
-    1247161222122442752,
-    1375756161814630502,
-    1247161288719859784,
-    1297932610814738513,
-    1247161177637650485,
-    1247161375776571414,
     1186565079437680661,
-    1341463976365654136
+    1297932610814738513,
+    1341463976365654136,
+    1375756161814630502,
+    1247161375776571414,
+    1247161177637650485,
+    1247161222122442752,
+    1247161288719859784
   ],
   "exempt_guild": false,
-  "notify_channel_id": 1324393562229702696
+  "allowed_link_domains": [],
+  "temp_voice_enabled": false,
+  "temp_voice_lobby_id": null,
+  "temp_voice_category_id": null,
+  "temp_voice_name_format": "🔊 {user}",
+  "temp_voice_user_limit": 0
 }
