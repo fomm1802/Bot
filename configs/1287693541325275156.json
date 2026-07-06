@@ -1,6 +1,13 @@
 {
   "notify_channel_id": 1467238846595858697,
-  "join_here_channel_name": null,
+  "join_here_channel_id": 1406260760643895346,
+  "join_here_channel_name": "Join Here",
   "exempt_channels": [],
-  "exempt_guild": true
+  "exempt_guild": true,
+  "allowed_link_domains": [],
+  "temp_voice_enabled": false,
+  "temp_voice_lobby_id": null,
+  "temp_voice_category_id": null,
+  "temp_voice_name_format": "🔊 {user}",
+  "temp_voice_user_limit": 0
 }
