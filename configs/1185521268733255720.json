@@ -7,7 +7,7 @@
   "allowed_link_domains": [],
   "temp_voice_enabled": true,
   "temp_voice_lobby_id": 1309166130904043561,
-  "temp_voice_category_id": null,
+  "temp_voice_category_id": 1185521269215604757,
   "temp_voice_name_format": "🔊 {user}",
   "temp_voice_user_limit": 0
 }
