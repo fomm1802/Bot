@@ -1,22 +1,13 @@
 {
-  "notify_channel_id": 1324393562229702696,
-  "join_here_channel_id": 1309166130904043561,
-  "join_here_channel_name": "Join Here",
-  "exempt_channels": [
-    1186565079437680661,
-    1297932610814738513,
-    1341463976365654136,
-    1375756161814630502,
-    1247161375776571414,
-    1247161177637650485,
-    1247161222122442752,
-    1247161288719859784
-  ],
+  "notify_channel_id": null,
+  "join_here_channel_id": null,
+  "join_here_channel_name": null,
+  "exempt_channels": [],
   "exempt_guild": false,
   "allowed_link_domains": [],
   "temp_voice_enabled": true,
   "temp_voice_lobby_id": 1309166130904043561,
-  "temp_voice_category_id": 1185521269215604757,
+  "temp_voice_category_id": null,
   "temp_voice_name_format": "🔊 {user}",
   "temp_voice_user_limit": 0
 }
