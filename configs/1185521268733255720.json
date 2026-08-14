@@ -3,7 +3,7 @@
   "join_here_channel_id": null,
   "join_here_channel_name": null,
   "exempt_channels": [],
-  "exempt_guild": false,
+  "exempt_guild": true,
   "allowed_link_domains": [],
   "temp_voice_enabled": true,
   "temp_voice_lobby_id": 1309166130904043561,
