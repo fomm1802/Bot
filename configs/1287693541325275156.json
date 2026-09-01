@@ -20,8 +20,6 @@
   "welcome_enabled": false,
   "welcome_channel_id": null,
   "welcome_message": "🎉 ยินดีต้อนรับคุณ {user} เข้าสู่เซิร์ฟเวอร์ {server}! (สมาชิกคนที่ #{member_count})",
-  "bad_words_enabled": true,
-  "bad_words_list": [
-    "แจกดิส"
-  ]
+  "bad_words_enabled": false,
+  "bad_words_list": []
 }
